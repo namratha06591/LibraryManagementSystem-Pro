@@ -1,0 +1,268 @@
+package com.library;
+
+import java.time.LocalDate;
+import java.util.List;
+
+import javafx.application.Application;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+
+public class MainApp extends Application {
+
+    private final BorderPane root = new BorderPane();
+    private final VBox sidebar = new VBox(12);
+    private final VBox content = new VBox(22);
+
+    @Override
+    public void start(Stage stage) {
+        root.getStyleClass().add("app-root");
+
+        createSidebar();
+        showDashboard();
+
+        root.setLeft(sidebar);
+        root.setCenter(content);
+
+        Scene scene = new Scene(root, 1200, 760);
+
+        var stylesheet = getClass().getResource("/css/dark-theme.css");
+        if (stylesheet != null) {
+            scene.getStylesheets().add(stylesheet.toExternalForm());
+        } else {
+            System.out.println("Warning: dark-theme.css was not found.");
+        }
+
+        stage.setTitle("Library Management System");
+        stage.setMinWidth(950);
+        stage.setMinHeight(650);
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    private void createSidebar() {
+        sidebar.getStyleClass().add("sidebar");
+        sidebar.setPadding(new Insets(28, 18, 24, 18));
+        sidebar.setPrefWidth(230);
+
+        Label logo = new Label("LIBRARY");
+        logo.getStyleClass().add("logo");
+
+        Label subtitle = new Label("MANAGEMENT SYSTEM");
+        subtitle.getStyleClass().add("sidebar-subtitle");
+
+        VBox brand = new VBox(5, logo, subtitle);
+        brand.setPadding(new Insets(0, 0, 25, 4));
+
+        Label menuLabel = new Label("MAIN MENU");
+        menuLabel.getStyleClass().add("section-label");
+
+        Button dashboard = navButton("▦   Dashboard", true);
+        Button books = navButton("▤   Books", false);
+        Button students = navButton("♙   Students", false);
+        Button issue = navButton("↗   Issue Book", false);
+        Button returns = navButton("↙   Return Book", false);
+        Button search = navButton("⌕   Search", false);
+        Button reports = navButton("▥   Reports", false);
+
+        dashboard.setOnAction(e -> showDashboard());
+        books.setOnAction(e -> showPlaceholder("Books", "Book management will be added next."));
+        students.setOnAction(e -> showPlaceholder("Students", "Student records will be added next."));
+        issue.setOnAction(e -> showPlaceholder("Issue Book", "Book issuing will be added next."));
+        returns.setOnAction(e -> showPlaceholder("Return Book", "Book returns and fines will be added next."));
+        search.setOnAction(e -> showPlaceholder("Search", "Library search will be added next."));
+        reports.setOnAction(e -> showPlaceholder("Reports", "Library reports will be added next."));
+
+        Region spacer = new Region();
+        VBox.setVgrow(spacer, Priority.ALWAYS);
+
+        Label footer = new Label("Library System  •  v1.0");
+        footer.getStyleClass().add("sidebar-footer");
+
+        sidebar.getChildren().addAll(
+                brand, menuLabel, dashboard, books, students,
+                issue, returns, search, reports, spacer, footer
+        );
+    }
+
+    private Button navButton(String text, boolean active) {
+        Button button = new Button(text);
+        button.getStyleClass().add("nav-button");
+
+        if (active) {
+            button.getStyleClass().add("nav-button-active");
+        }
+
+        button.setMaxWidth(Double.MAX_VALUE);
+        button.setAlignment(Pos.CENTER_LEFT);
+        return button;
+    }
+
+    private void showDashboard() {
+        content.getChildren().clear();
+        content.setPadding(new Insets(30, 34, 30, 34));
+
+        Label heading = new Label("Dashboard");
+        heading.getStyleClass().add("page-title");
+
+        Label description = new Label(
+                "Welcome back! Here's your library overview."
+        );
+        description.getStyleClass().add("page-subtitle");
+
+        VBox headingBox = new VBox(7, heading, description);
+
+        Button addBook = new Button("+  Add Book");
+        addBook.getStyleClass().add("primary-button");
+        addBook.setOnAction(e ->
+                showPlaceholder("Add Book", "The book form will be added next."));
+
+        HBox topRow = new HBox(15, headingBox, addBook);
+        topRow.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(headingBox, Priority.ALWAYS);
+
+        GridPane cards = new GridPane();
+        cards.setHgap(16);
+        cards.setVgap(16);
+
+        cards.add(createStatCard("TOTAL BOOKS", "0", "Books in your collection"), 0, 0);
+        cards.add(createStatCard("STUDENTS", "0", "Registered students"), 1, 0);
+        cards.add(createStatCard("ACTIVE LOANS", "0", "Books currently issued"), 0, 1);
+        cards.add(createStatCard("OVERDUE FINES", "₹0", "Outstanding fines"), 1, 1);
+
+        for (int column = 0; column < 2; column++) {
+            ColumnConstraintHelper.makeColumnGrow(cards, column);
+        }
+
+        Label sectionTitle = new Label("Recent Book Issues");
+        sectionTitle.getStyleClass().add("section-title");
+
+        TextField searchField = new TextField();
+        searchField.setPromptText("Search by student or book...");
+        searchField.getStyleClass().add("search-field");
+        searchField.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(searchField, Priority.ALWAYS);
+
+        HBox searchRow = new HBox(searchField);
+        searchRow.setAlignment(Pos.CENTER_LEFT);
+
+        TableView<IssueRow> table = createIssuesTable();
+        table.setItems(FXCollections.observableArrayList(List.of(
+                new IssueRow("No records yet", "Add your first book issue", "—", "—")
+        )));
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        Label note = new Label(
+                "This is the initial dashboard. Real records will be connected in the next steps."
+        );
+        note.getStyleClass().add("hint-label");
+
+        content.getChildren().addAll(
+                topRow, cards, sectionTitle, searchRow, table, note
+        );
+        VBox.setVgrow(cards, Priority.NEVER);
+    }
+
+    private VBox createStatCard(String title, String value, String description) {
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("stat-title");
+
+        Label valueLabel = new Label(value);
+        valueLabel.getStyleClass().add("stat-value");
+
+        Label descriptionLabel = new Label(description);
+        descriptionLabel.getStyleClass().add("stat-description");
+
+        VBox card = new VBox(10, titleLabel, valueLabel, descriptionLabel);
+        card.getStyleClass().add("stat-card");
+        card.setPadding(new Insets(20));
+        card.setMinHeight(135);
+        card.setMaxWidth(Double.MAX_VALUE);
+        GridPane.setHgrow(card, Priority.ALWAYS);
+
+        return card;
+    }
+
+    private TableView<IssueRow> createIssuesTable() {
+        TableView<IssueRow> table = new TableView<>();
+        table.getStyleClass().add("data-table");
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
+
+        TableColumn<IssueRow, String> studentColumn = new TableColumn<>("STUDENT");
+        studentColumn.setCellValueFactory(data ->
+                new SimpleStringProperty(data.getValue().student()));
+
+        TableColumn<IssueRow, String> bookColumn = new TableColumn<>("BOOK");
+        bookColumn.setCellValueFactory(data ->
+                new SimpleStringProperty(data.getValue().book()));
+
+        TableColumn<IssueRow, String> issueColumn = new TableColumn<>("ISSUE DATE");
+        issueColumn.setCellValueFactory(data ->
+                new SimpleStringProperty(data.getValue().issueDate()));
+
+        TableColumn<IssueRow, String> dueColumn = new TableColumn<>("DUE DATE");
+        dueColumn.setCellValueFactory(data ->
+                new SimpleStringProperty(data.getValue().dueDate()));
+
+        table.getColumns().addAll(
+                studentColumn, bookColumn, issueColumn, dueColumn
+        );
+        table.setPlaceholder(new Label("No book issues to display yet."));
+
+        return table;
+    }
+
+    private void showPlaceholder(String title, String message) {
+        content.getChildren().clear();
+        content.setPadding(new Insets(30, 34, 30, 34));
+
+        Label heading = new Label(title);
+        heading.getStyleClass().add("page-title");
+
+        Label description = new Label(message);
+        description.getStyleClass().add("page-subtitle");
+
+        Button back = new Button("←  Back to Dashboard");
+        back.getStyleClass().add("primary-button");
+        back.setOnAction(e -> showDashboard());
+
+        VBox page = new VBox(18, heading, description, back);
+        page.setPadding(new Insets(10));
+        content.getChildren().add(page);
+    }
+
+    private record IssueRow(
+            String student,
+            String book,
+            String issueDate,
+            String dueDate
+    ) {}
+
+    private static class ColumnConstraintHelper {
+        static void makeColumnGrow(GridPane grid, int index) {
+            javafx.scene.layout.ColumnConstraints constraints =
+                    new javafx.scene.layout.ColumnConstraints();
+            constraints.setPercentWidth(50);
+            constraints.setHgrow(Priority.ALWAYS);
+            grid.getColumnConstraints().add(constraints);
+        }
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
